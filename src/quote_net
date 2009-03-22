@@ -1,0 +1,73 @@
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
+
+import quote_net as qn
+from quote_net import *
+from optparse import OptionParser
+
+
+def show_version():
+    print """\
+quote_net - tool for view quotes from zitate.net
+Version: %s
+Author: %s <%s>
+
+License: %s""" % (qn.__version__, qn.__author__, qn.__email__, qn.__license__)
+    
+    sys.exit(0)
+      
+
+if __name__ == '__main__':
+    import sys
+
+    options = OptionParser()
+
+    options.add_option('-n', '--num', action="store", 
+                       dest="entries", default='1', 
+                       help="sets the number of quotes to receive")
+    options.add_option('-l', '--lang', action="store", 
+                       dest="lang", default='de',
+                       help="sets the language of the quote. use: *de*, en, fr,...")
+    options.add_option('-C', None, action="store_true",
+                       dest="discol", default=False,
+                       help="disable fancy output")
+    options.add_option('-c', None, action="store_false",
+                       dest="discol", default=False, 
+                       help="enable fancy output (default)")
+
+    options.add_option('-B', None, action="store_true",
+                       dest="nohistory", default=False, 
+                       help="disable the write from the quote to the history file")
+    options.add_option('-b', None, action="store_false",
+                       dest="nohistory", default=False, 
+                       help="enable the write from the quote to the history file (this is default)")
+
+    options.add_option('-v', '--version', action="store_true",
+                       dest="version", default=False, 
+                       help="shows version and author information")
+      
+    opts , args = options.parse_args()
+    del args, options
+
+    
+    if opts.version:
+        show_version();
+    
+    history = not opts.nohistory
+
+    try:
+        tree = retrieve(QuoteOptions( 
+                language=opts.lang, entries=opts.entries  )
+                        )
+        
+        use_color = sys.stdout.isatty() and not opts.discol
+        outhandle = cl_out if use_color else out
+
+        for quote in tree.getiterator('Quote'):
+            q = extract_quote(quote)
+            outhandle( **q )
+            if history: write_history(**q)
+
+    except QuoteRequestException , e:
+        print >> sys.stderr, e
+        
